@@ -6,7 +6,8 @@ import datetime
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here' # Change this in production
-DB_NAME = 'Billing.db'
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_NAME = os.path.join(BASE_DIR, 'Billing.db')
 
 def get_db_connection():
     conn = sqlite3.connect(DB_NAME)

@@ -1,7 +1,12 @@
 import sqlite3
 
+
+import os
+
 def init_db():
-    conn = sqlite3.connect('Billing.db')
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    DB_NAME = os.path.join(BASE_DIR, 'Billing.db')
+    conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
     # Create Menu table
