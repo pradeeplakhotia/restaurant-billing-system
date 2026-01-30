@@ -18,6 +18,10 @@ def get_db_connection():
 def index():
     return render_template('index.html')
 
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
 @app.route('/add_item', methods=('GET', 'POST'))
 def add_item():
     if request.method == 'POST':
@@ -440,11 +444,12 @@ def generate_sales_report():
         pdf.cell(150, 10, "Total Net Amount:", 1, 0, 'R')
         pdf.cell(40, 10, f"{total_net_amt:.2f}", 1, 1, 'R')
         
-        if not os.path.exists('static/reports'):
-            os.makedirs('static/reports')
+        reports_dir = os.path.join(BASE_DIR, 'static', 'reports')
+        if not os.path.exists(reports_dir):
+            os.makedirs(reports_dir)
             
         filename = f"sales_report_{report_type}.pdf"
-        filepath = os.path.join('static', 'reports', filename)
+        filepath = os.path.join(reports_dir, filename)
         pdf.output(filepath)
         
         return {'status': 'success', 'pdf_url': f"/static/reports/{filename}"}
@@ -457,7 +462,7 @@ def generate_sales_report():
 @app.route('/reprint_invoice/<int:inv_no>')
 def reprint_invoice(inv_no):
     filename = f"inv_{inv_no}.pdf"
-    filepath = os.path.join('static', 'invoices', filename)
+    filepath = os.path.join(BASE_DIR, 'static', 'invoices', filename)
     
     # 1. Check if file exists
     if os.path.exists(filepath):
@@ -588,11 +593,12 @@ def generate_summary_report():
         pdf.cell(50, 10, "Grand Total:", 1, 0, 'R')
         pdf.cell(50, 10, f"{grand_total:.2f}", 1, 1, 'R')
         
-        if not os.path.exists('static/reports'):
-            os.makedirs('static/reports')
+        reports_dir = os.path.join(BASE_DIR, 'static', 'reports')
+        if not os.path.exists(reports_dir):
+            os.makedirs(reports_dir)
             
         filename = f"summary_{start_date}_{end_date}.pdf"
-        filepath = os.path.join('static', 'reports', filename)
+        filepath = os.path.join(reports_dir, filename)
         pdf.output(filepath)
         
         return {'status': 'success', 'pdf_url': f"/static/reports/{filename}"}
@@ -734,11 +740,12 @@ def generate_sale_details_report():
                 pdf.cell(col_widths[i], 10, str(val), 1, 0, aligns[i])
             pdf.ln()
             
-        if not os.path.exists('static/reports'):
-            os.makedirs('static/reports')
+        reports_dir = os.path.join(BASE_DIR, 'static', 'reports')
+        if not os.path.exists(reports_dir):
+            os.makedirs(reports_dir)
             
         filename = f"sale_details_{report_type}_{start_date}_{end_date}.pdf"
-        filepath = os.path.join('static', 'reports', filename)
+        filepath = os.path.join(reports_dir, filename)
         pdf.output(filepath)
         
         return {'status': 'success', 'pdf_url': f"/static/reports/{filename}"}
@@ -814,11 +821,12 @@ def generate_pdf(master, details):
     pdf.ln(10)
     pdf.cell(0, 10, "Thank you for visiting!", 0, 1, 'C')
     
-    if not os.path.exists('static/invoices'):
-        os.makedirs('static/invoices')
+    invoices_dir = os.path.join(BASE_DIR, 'static', 'invoices')
+    if not os.path.exists(invoices_dir):
+        os.makedirs(invoices_dir)
         
     filename = f"inv_{master['InvNo']}.pdf"
-    filepath = os.path.join('static', 'invoices', filename)
+    filepath = os.path.join(invoices_dir, filename)
     pdf.output(filepath)
     return f"/static/invoices/{filename}"
 
