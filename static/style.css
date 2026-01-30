@@ -1,0 +1,366 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@400;700&display=swap');
+
+body {
+    font-family: 'Lato', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-image: url('bg.png');
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+    background-color: #f4f4f4;
+    /* Fallback */
+    color: #333;
+}
+
+header {
+    background-color: rgba(30, 30, 30, 0.9);
+    /* Semi-transparent dark bg */
+    color: #fff;
+    padding: 1.5rem 0;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    margin: 0 0 10px 0;
+    font-style: italic;
+    color: #f0c040;
+    /* Goldish accent */
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+    text-align: center;
+    margin: 10px 0 0 0;
+}
+
+nav ul li {
+    display: inline-block;
+    margin: 0 15px;
+}
+
+nav ul li a {
+    color: #fff;
+    text-decoration: none;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    position: relative;
+    transition: color 0.3s;
+}
+
+nav ul li a:hover {
+    color: #f0c040;
+}
+
+.container {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.95);
+    /* Slightly transparent white */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    border-top: 5px solid #f0c040;
+}
+
+h2 {
+    font-family: 'Playfair Display', serif;
+    color: #333;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+    text-align: center;
+}
+
+form {
+    margin-top: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #555;
+    font-family: 'Playfair Display', serif;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+    width: 100%;
+    padding: 12px;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-family: 'Lato', sans-serif;
+}
+
+input:focus {
+    border-color: #f0c040;
+    outline: none;
+    box-shadow: 0 0 5px rgba(240, 192, 64, 0.3);
+}
+
+button {
+    background-color: #333;
+    color: #f0c040;
+    padding: 10px 15px;
+    /* Reduced padding from 12px 25px */
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: bold;
+    transition: background 0.3s ease;
+    width: 100%;
+}
+
+button:hover {
+    background-color: #111;
+}
+
+.flash-messages {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+.flash-messages li {
+    background: #d4edda;
+    color: #155724;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    border-left: 5px solid #28a745;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+table,
+th,
+td {
+    border: 1px solid #ddd;
+}
+
+th,
+td {
+    padding: 12px;
+    text-align: left;
+}
+
+th {
+    background-color: #333;
+    color: #fff;
+    font-family: 'Playfair Display', serif;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    body {
+        background-attachment: scroll;
+        /* Better performance on mobile */
+    }
+
+    header {
+        padding: 1rem;
+        position: relative;
+    }
+
+    h1 {
+        font-size: 1.8rem;
+    }
+
+    /* Hamburger Button */
+    .hamburger {
+        display: block;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 2rem;
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        cursor: pointer;
+        width: auto;
+        padding: 0;
+    }
+
+    nav ul {
+        display: none; /* Hidden by default */
+        flex-direction: column;
+        background-color: rgba(30, 30, 30, 0.95);
+        width: 100%;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 1000;
+        padding-bottom: 20px;
+    }
+
+    nav ul.active {
+        display: flex; /* Show when active */
+    }
+
+    nav ul li {
+        display: block;
+        margin: 15px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        padding-bottom: 5px;
+    }
+
+    nav ul li:last-child {
+        border-bottom: none;
+    }
+
+    .container {
+        margin: 60px 10px 20px 10px; /* More top margin for fixed header if needed, strictly just spacing */
+        padding: 15px;
+    }
+
+    button {
+        width: 100%;
+    }
+
+    .split-container {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .split-left,
+    .split-right {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+}
+
+/* Hide hamburger on desktop */
+@media (min-width: 769px) {
+    .hamburger {
+        display: none;
+    }
+}
+
+/* Split Layout */
+.split-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+    height: 400px;
+    /* Fixed height for the form area */
+    overflow: hidden;
+    /* Prevent form itself from scrolling */
+}
+
+.split-left {
+    flex: 1.5;
+    /* Increased width as requested */
+    background: rgba(255, 255, 255, 0.5);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+}
+
+.split-right {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Button Row for side-by-side buttons */
+.btn-row {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-row button {
+    flex: 1;
+    /* Share space equally */
+    width: auto;
+    /* Override default 100% width */
+}
+
+.waiter-list {
+    flex: 1;
+    /* Take remaining height */
+    overflow-y: auto;
+    /* Scrollable */
+    border: 1px solid #eee;
+    /* Visual boundary */
+    border-radius: 4px;
+    background: #fff;
+    padding: 5px;
+}
+
+.waiter-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.waiter-list li {
+    background: #fff;
+    border-bottom: 1px solid #eee;
+    padding: 10px;
+    font-family: 'Lato', sans-serif;
+    font-size: 1.1rem;
+}
+
+.waiter-list li:last-child {
+    border-bottom: none;
+}
+
+/* Windows Close Button Style */
+.container {
+    position: relative;
+    /* Ensure absolute positioning works for children */
+}
+
+.windows-close-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 46px;
+    height: 32px;
+    line-height: 32px;
+    text-align: center;
+    color: #333;
+    font-family: "Segoe MDL2 Assets", "Segoe UI Symbol", sans-serif;
+    font-size: 16px;
+    text-decoration: none;
+    transition: background-color 0.2s, color 0.2s;
+    border-top-right-radius: 5px;
+    /* Match container */
+    cursor: pointer;
+}
+
+.windows-close-btn:hover {
+    background-color: #e81123;
+    /* Windows Red */
+    color: white;
+}
+
+.windows-close-btn::before {
+    content: "\00D7";
+    /* Multiplication sign (X) */
+    font-weight: 300;
+    font-size: 20px;
+}

@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+<a href="{{ url_for('index') }}" class="windows-close-btn" title="Close"></a>
+<div class="split-container">
+    <div class="split-left">
+        <h2>Add New Headwaiter</h2>
+        <form method="POST">
+            <div class="form-group">
+                <label for="waiter">Waiter Name</label>
+                <input type="text" id="waiter" name="waiter" required>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" id="add-btn">Add Waiter</button>
+                <button type="button" id="delete-btn" style="background-color: #d9534f; color: white;"
+                    disabled>Delete</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="split-right">
+        <h2>Existing Waiters</h2>
+        <div class="waiter-list">
+            {% if waiters %}
+            <ul id="waiter-list-ul">
+                {% for waiter in waiters %}
+                <li class="waiter-item" style="cursor: pointer;">{{ waiter['waiter'] }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>No waiters found.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    const waiterInput = document.getElementById('waiter');
+    const deleteBtn = document.getElementById('delete-btn');
+    const addBtn = document.getElementById('add-btn');
+    const form = document.querySelector('form');
+    const waiterItems = document.querySelectorAll('.waiter-item');
+
+    waiterItems.forEach(item => {
+        item.addEventListener('click', function () {
+            waiterInput.value = this.textContent.trim();
+            deleteBtn.disabled = false;
+        });
+    });
+
+    deleteBtn.addEventListener('click', function () {
+        if (waiterInput.value && confirm('Are you sure you want to delete ' + waiterInput.value + '?')) {
+            form.action = "{{ url_for('delete_waiter') }}";
+            form.submit();
+        }
+    });
+
+    // Reset on input change if needed, or keep simpler
+    waiterInput.addEventListener('input', function () {
+        if (this.value === '') {
+            deleteBtn.disabled = true;
+        }
+    });
+</script>
+{% endblock %}

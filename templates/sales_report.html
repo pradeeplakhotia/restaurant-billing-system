@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .report-card {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .section-header {
+        background-color: #0d6efd;
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: bold;
+    }
+</style>
+
+<div class="container">
+    <div class="report-card">
+        <div class="section-header">
+            Sales Report Configuration
+        </div>
+
+        <form id="reportForm">
+            <!-- Report Type Selection -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Select Report Type:</label>
+                <div class="ms-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="reportType" id="typeComplete"
+                            value="complete" checked onchange="toggleInputs()">
+                        <label class="form-check-label" for="typeComplete">Complete Sale Report</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="reportType" id="typeDatewise"
+                            value="datewise" onchange="toggleInputs()">
+                        <label class="form-check-label" for="typeDatewise">Datewise Sale Report</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="reportType" id="typeWaiterwise"
+                            value="waiterwise" onchange="toggleInputs()">
+                        <label class="form-check-label" for="typeWaiterwise">Datewise Waiter Wise Sale Report</label>
+                    </div>
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- Date Range Inputs -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="startDate" disabled>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="endDate" disabled>
+                </div>
+            </div>
+
+            <!-- Waiter Selection -->
+            <div class="mb-3">
+                <label class="form-label">Select Waiter</label>
+                <select class="form-select" id="waiterSelect" disabled>
+                    <option value="">-- Select Waiter --</option>
+                    {% for waiter in waiters %}
+                    <option value="{{ waiter['waiter'] }}">{{ waiter['waiter'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Generate Button -->
+            <div class="d-grid gap-2">
+                <button type="button" class="btn btn-primary fw-bold" onclick="generateReport()">Generate Report
+                    (PDF)</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Set default dates to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('startDate').value = today;
+        document.getElementById('endDate').value = today;
+        toggleInputs();
+    });
+
+    function toggleInputs() {
+        const type = document.querySelector('input[name="reportType"]:checked').value;
+        const startDate = document.getElementById('startDate');
+        const endDate = document.getElementById('endDate');
+        const waiterSelect = document.getElementById('waiterSelect');
+
+        if (type === 'complete') {
+            startDate.disabled = true;
+            endDate.disabled = true;
+            waiterSelect.disabled = true;
+        } else if (type === 'datewise') {
+            startDate.disabled = false;
+            endDate.disabled = false;
+            waiterSelect.disabled = true;
+        } else if (type === 'waiterwise') {
+            startDate.disabled = false;
+            endDate.disabled = false;
+            waiterSelect.disabled = false;
+        }
+    }
+
+    async function generateReport() {
+        const type = document.querySelector('input[name="reportType"]:checked').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const waiter = document.getElementById('waiterSelect').value;
+
+        // Validation
+        if (type !== 'complete') {
+            if (!startDate || !endDate) {
+                alert("Please select Start and End dates.");
+                return;
+            }
+        }
+        if (type === 'waiterwise' && !waiter) {
+            alert("Please select a waiter.");
+            return;
+        }
+
+        const payload = {
+            type: type,
+            start_date: startDate,
+            end_date: endDate,
+            waiter: waiter
+        };
+
+        try {
+            const res = await fetch('/generate_sales_report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                window.open(data.pdf_url, '_blank');
+            } else {
+                alert('Error generating report: ' + data.message);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Failed to connect to server.");
+        }
+    }
+</script>
+{% endblock %}

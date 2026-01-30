@@ -1,0 +1,396 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .kot-container {
+        background-color: #6a6aff;
+        /* Approximate blue from screenshot */
+        color: red;
+        /* "KOT Enteries" title is red */
+        padding: 20px;
+        min-height: 80vh;
+        font-family: Arial, sans-serif;
+    }
+
+    .kot-title {
+        font-size: 24px;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+    }
+
+    .form-label-custom {
+        color: black;
+        font-weight: bold;
+    }
+
+    .input-custom {
+        border: 1px solid #000;
+        border-radius: 0;
+    }
+
+    .list-box-custom {
+        background-color: white;
+        border: 1px solid #000;
+        height: 400px;
+        overflow-y: auto;
+    }
+
+    .list-header {
+        background-color: #ddd;
+        font-weight: bold;
+        border-bottom: 1px solid #000;
+        padding: 5px;
+    }
+
+    .list-row {
+        cursor: pointer;
+        padding: 2px 5px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .list-row:hover,
+    .list-row.selected {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+    .btn-custom {
+        width: 80px;
+        margin: 2px;
+        font-weight: bold;
+        border-radius: 0;
+        border: 1px solid #000;
+        background-color: #f0f0f0;
+    }
+
+    /* Override container width for this page if needed */
+    .container {
+        max-width: 1200px !important;
+    }
+</style>
+
+<div class="kot-container">
+    <div class="row">
+        <!-- Center Title -->
+        <div class="col-md-6 offset-md-3">
+            <div class="kot-title">KOT Enteries</div>
+        </div>
+        <!-- Right Header Date/Time -->
+        <div class="col-md-3 text-end text-black" style="color: black; font-weight: bold;">
+            <div class="d-flex align-items-center justify-content-end gap-2 mb-1">
+                <label>Time</label>
+                <input type="text" id="kotTime" class="form-control form-control-sm input-custom" style="width: 100px;"
+                    readonly>
+            </div>
+            <div class="d-flex align-items-center justify-content-end gap-2">
+                <label>Date</label>
+                <input type="text" id="kotDate" class="form-control form-control-sm input-custom" style="width: 120px;"
+                    readonly>
+            </div>
+            <div class="form-check d-flex justify-content-end align-items-center gap-2 mt-1">
+                <input class="form-check-input" type="checkbox" id="runningTableCheck">
+                <label class="form-check-label" for="runningTableCheck">Running Table</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <!-- Left Panel: Inputs -->
+        <div class="col-md-4">
+            <div class="d-flex align-items-center justify-content-end mb-2">
+                <label class="form-label-custom me-2">Entry No</label>
+                <input type="text" id="entryNo" class="form-control form-control-sm input-custom" style="width: 80px;"
+                    readonly>
+            </div>
+
+            <div class="row mb-1">
+                <div class="col-4"><label class="form-label-custom">Table No</label></div>
+                <div class="col-5"><label class="form-label-custom">Item</label></div>
+                <div class="col-3 text-end"><label class="form-label-custom">Qty</label></div>
+            </div>
+            <div class="row mb-2">
+                <div class="col-4">
+                    <input type="text" id="tableNo" class="form-control form-control-sm input-custom fw-bold"
+                        style="font-size: 1.2rem;">
+                </div>
+                <div class="col-5">
+                    <input type="text" id="itemSearch" class="form-control form-control-sm input-custom"
+                        placeholder="Search item...">
+                </div>
+                <div class="col-3">
+                    <input type="number" id="qty" class="form-control form-control-sm input-custom" value="1">
+                </div>
+            </div>
+
+            <!-- Item List Box -->
+            <div class="list-box-custom mb-2" style="height: 200px;">
+                <select class="form-select border-0 h-100" size="10" id="itemList" onchange="selectItem()">
+                    {% for item in items %}
+                    <option value="{{ item['item'] }}">{{ item['item'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="sameTableCheck" checked>
+                <label class="form-check-label fw-bold" for="sameTableCheck" style="color: black;">Same Table</label>
+            </div>
+
+            <!-- Buttons Grid -->
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-custom" onclick="saveKOT()">Save</button>
+                <button class="btn btn-custom" onclick="editKOT()">Edit</button>
+                <button class="btn btn-custom" onclick="deleteKOT()">Delete</button>
+                <button class="btn btn-custom" onclick="resetForm()">Refresh</button>
+                <button class="btn btn-custom">Reprint</button>
+                <button class="btn btn-custom">Print</button>
+                <button class="btn btn-custom">KOT</button>
+                <a href="/" class="btn btn-custom text-decoration-none text-center pt-1" style="color: black;">Exit</a>
+            </div>
+        </div>
+
+        <!-- Center Panel: KOT Entries List -->
+        <div class="col-md-5">
+            <div class="list-box-custom">
+                <table class="table table-sm table-bordered mb-0" style="font-size: 0.9rem;">
+                    <thead class="list-header">
+                        <tr>
+                            <th style="width: 20px;"></th>
+                            <th style="width: 60px;">Entry No.</th>
+                            <th>Item</th>
+                            <th style="width: 50px;">Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kotEntriesList" style="background-color: white;">
+                        <!-- Entries will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Right Panel: Running Tables -->
+        <div class="col-md-3">
+            <div class="list-box-custom">
+                <table class="table table-sm table-bordered mb-0">
+                    <thead class="list-header">
+                        <tr>
+                            <th style="width: 20px;"></th>
+                            <th>Table No</th>
+                        </tr>
+                    </thead>
+                    <tbody id="runningTablesList" style="background-color: white;">
+                        <!-- Running tables will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-end mt-2 text-danger fw-bold" style="font-size: 1.1rem;">
+                Total Running Tables <span id="totalRunning" class="ms-2">0</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let selectedKOTEntry = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+        refreshData();
+    });
+
+    function updateDateTime() {
+        const now = new Date();
+        // Format: 27-Jan-2026
+        const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+        // Format: 2:56:11 PM
+        const timeStr = now.toLocaleTimeString('en-US', { hour12: true });
+
+        document.getElementById('kotDate').value = dateStr;
+        document.getElementById('kotTime').value = timeStr;
+    }
+
+    async function refreshData() {
+        // Get Next Entry No
+        const nextNoRes = await fetch('/get_next_kot_no');
+        const nextNoData = await nextNoRes.json();
+        document.getElementById('entryNo').value = nextNoData.next_no;
+
+        // Get KOT Data lists
+        const dataRes = await fetch('/get_kot_data');
+        const data = await dataRes.json();
+
+        // Render Entries
+        const entriesBody = document.getElementById('kotEntriesList');
+        entriesBody.innerHTML = '';
+        data.entries.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.className = 'list-row';
+            tr.onclick = () => selectKOTEntry(row, tr);
+            tr.innerHTML = `
+                <td>►</td>
+                <td>${row.EntryNo}</td>
+                <td>${row.Item}</td>
+                <td>${row.Qty}</td>
+            `;
+            entriesBody.appendChild(tr);
+        });
+
+        // Render Running Tables
+        const tablesBody = document.getElementById('runningTablesList');
+        tablesBody.innerHTML = '';
+        data.running_tables.forEach(table => {
+            const tr = document.createElement('tr');
+            tr.className = 'list-row';
+            tr.innerHTML = `
+                <td>►</td>
+                <td>${table}</td>
+            `;
+            tablesBody.appendChild(tr);
+        });
+        document.getElementById('totalRunning').innerText = data.running_tables.length;
+    }
+
+    function selectItem() {
+        const sel = document.getElementById('itemList');
+        document.getElementById('itemSearch').value = sel.value;
+    }
+
+    // Filter item list
+    document.getElementById('itemSearch').addEventListener('input', function () {
+        const filter = this.value.toUpperCase();
+        const options = document.getElementById('itemList').options;
+        for (let i = 0; i < options.length; i++) {
+            const txt = options[i].text;
+            if (txt.toUpperCase().indexOf(filter) > -1) {
+                options[i].style.display = "";
+            } else {
+                options[i].style.display = "none";
+            }
+        }
+    });
+
+    function selectKOTEntry(row, tr) {
+        // Highlight row
+        document.querySelectorAll('#kotEntriesList tr').forEach(r => r.classList.remove('selected'));
+        tr.classList.add('selected');
+
+        selectedKOTEntry = row;
+        document.getElementById('entryNo').value = row.EntryNo;
+        document.getElementById('tableNo').value = row.TableNo;
+        document.getElementById('itemSearch').value = row.Item;
+        document.getElementById('qty').value = row.Qty;
+        // Select in list if exists
+        const opts = document.getElementById('itemList').options;
+        for (let i = 0; i < opts.length; i++) {
+            if (opts[i].value === row.Item) {
+                document.getElementById('itemList').selectedIndex = i;
+                break;
+            }
+        }
+    }
+
+    async function saveKOT() {
+        if (selectedKOTEntry) {
+            await editKOT();
+            return;
+        }
+
+        const table = document.getElementById('tableNo').value;
+        const item = document.getElementById('itemSearch').value;
+        const qty = document.getElementById('qty').value;
+
+        if (!table || !item || !qty) {
+            alert("Please fill all fields");
+            return;
+        }
+
+        const payload = {
+            action: 'save',
+            date: document.getElementById('kotDate').value,
+            time: document.getElementById('kotTime').value,
+            tableNo: table,
+            item: item,
+            qty: qty
+        };
+
+        await sendAction(payload);
+
+        if (!document.getElementById('sameTableCheck').checked) {
+            document.getElementById('tableNo').value = '';
+        }
+        document.getElementById('itemSearch').value = '';
+        document.getElementById('qty').value = '1';
+        selectedKOTEntry = null;
+        refreshData();
+    }
+
+    async function editKOT() {
+        if (!selectedKOTEntry) {
+            alert("Please select an entry to edit");
+            return;
+        }
+
+        const table = document.getElementById('tableNo').value;
+        const item = document.getElementById('itemSearch').value;
+        const qty = document.getElementById('qty').value;
+
+        const payload = {
+            action: 'update',
+            entryNo: selectedKOTEntry.EntryNo,
+            tableNo: table,
+            item: item,
+            qty: qty
+        };
+
+        await sendAction(payload);
+        resetForm();
+    }
+
+    async function deleteKOT() {
+        if (!selectedKOTEntry) {
+            alert("Please select an entry to delete");
+            return;
+        }
+
+        if (!confirm("Are you sure you want to delete this entry?")) return;
+
+        const payload = {
+            action: 'delete',
+            entryNo: selectedKOTEntry.EntryNo
+        };
+
+        await sendAction(payload);
+        resetForm();
+    }
+
+    async function sendAction(payload) {
+        try {
+            const res = await fetch('/kot_action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                // optional: alert(data.message);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Request failed');
+        }
+    }
+
+    function resetForm() {
+        document.getElementById('tableNo').value = '';
+        document.getElementById('itemSearch').value = '';
+        document.getElementById('qty').value = '1';
+        selectedKOTEntry = null;
+        refreshData();
+    }
+</script>
+{% endblock %}

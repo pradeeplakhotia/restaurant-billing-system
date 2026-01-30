@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<a href="{{ url_for('index') }}" class="windows-close-btn" title="Close"></a>
+<div class="split-container">
+    <div class="split-left">
+        <h2>Add / Update Menu Item</h2>
+        <form method="POST" id="item-form">
+            <div class="form-group">
+                <label for="item">Item Name</label>
+                <input type="text" id="item" name="item" required>
+            </div>
+            <div class="form-group">
+                <label for="rate">Rate</label>
+                <input type="number" id="rate" name="rate" step="0.01" required>
+            </div>
+            <div class="btn-row">
+                <button type="submit" id="add-btn">Add Item</button>
+                <button type="button" id="update-btn" style="background-color: #f0ad4e; color: white;" disabled>Update
+                    Rate</button>
+                <button type="button" id="delete-btn" style="background-color: #d9534f; color: white;"
+                    disabled>Delete</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="split-right">
+        <h2>Existing Items</h2>
+        <div class="waiter-list"> <!-- Reusing existing list styles -->
+            {% if items %}
+            <ul id="item-list-ul">
+                {% for item in items %}
+                <li class="item-item" data-rate="{{ item['rate'] }}"
+                    style="cursor: pointer; display: flex; justify-content: space-between;">
+                    <span class="item-name">{{ item['item'] }}</span>
+                    <span class="item-rate">{{ item['rate'] }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>No items found.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    const itemInput = document.getElementById('item');
+    const rateInput = document.getElementById('rate');
+    const updateBtn = document.getElementById('update-btn');
+    const deleteBtn = document.getElementById('delete-btn');
+    const addBtn = document.getElementById('add-btn');
+    const form = document.querySelector('form');
+    const itemItems = document.querySelectorAll('.item-item');
+
+    itemItems.forEach(item => {
+        item.addEventListener('click', function () {
+            const name = this.querySelector('.item-name').textContent.trim();
+            const rate = this.dataset.rate;
+
+            itemInput.value = name;
+            rateInput.value = rate;
+
+            // Lock item name, enable update and delete
+            itemInput.readOnly = true;
+            itemInput.style.backgroundColor = "#e9ecef";
+            updateBtn.disabled = false;
+            deleteBtn.disabled = false;
+            addBtn.disabled = true;
+        });
+    });
+
+    updateBtn.addEventListener('click', function () {
+        if (itemInput.value && rateInput.value) {
+            form.action = "{{ url_for('update_item') }}";
+            form.submit();
+        }
+    });
+
+    deleteBtn.addEventListener('click', function () {
+        if (itemInput.value && confirm('Are you sure you want to delete ' + itemInput.value + '?')) {
+            form.action = "{{ url_for('delete_item') }}";
+            form.submit();
+        }
+    });
+
+    // Reset when clearing input manually (optional/basic handling)
+    // For now, if they want to add new, they click Add Item button or clear field logic could be added
+    // But since name is readonly on click, maybe a "Clear / New" button is better?
+    // Or just simple logic: click 'Close' to reset?
+    // For now, adhering strictly: Update button updates rate only. 
+</script>
+{% endblock %}

@@ -1,0 +1,612 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .form-label-sm {
+        font-weight: bold;
+        font-size: 0.9rem;
+        margin-bottom: 2px;
+    }
+
+    .header-section {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid #dee2e6;
+        margin-bottom: 15px;
+    }
+
+    .section-title {
+        background-color: #6f42c1;
+        color: white;
+        padding: 5px 15px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        border-radius: 3px;
+    }
+
+    .list-box {
+        height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        background: white;
+    }
+
+    .list-box table {
+        width: 100%;
+        margin-bottom: 0;
+    }
+
+    .list-box th {
+        position: sticky;
+        top: 0;
+        background-color: #e9ecef;
+        z-index: 1;
+    }
+
+    .list-box tr.selected {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+    .footer-section {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid #dee2e6;
+        margin-top: 15px;
+    }
+
+    .total-label {
+        font-weight: bold;
+        text-align: right;
+        padding-right: 10px;
+    }
+
+    .action-btn {
+        min-width: 80px;
+        margin: 0 2px;
+    }
+
+    /* Hide number input spinners */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+</style>
+
+<div class="container-fluid p-3">
+    <form id="invoiceForm">
+        <!-- Header Section -->
+        <div class="row mb-2 align-items-center">
+            <div class="col-5">
+                <div class="d-flex align-items-center gap-2">
+                    <label class="form-label-sm mb-0">Table No</label>
+                    <input type="text" class="form-control form-control-sm"
+                        style="width: 60px; background-color: #ffff00;" id="tableNo">
+                    <button type="button" class="btn btn-secondary btn-sm px-2" onclick="fetchKOTItems()">KOT</button>
+                    <!-- Waiter Select -->
+                    <select class="form-select form-select-sm ms-1" id="waiter" style="width: 120px;">
+                        <option value="">Select Waiter</option>
+                        {% for waiter in waiters %}
+                        <option value="{{ waiter['waiter'] }}">{{ waiter['waiter'] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-7">
+                <div class="row g-1 align-items-center justify-content-end text-end">
+                    <div class="col-auto"><label class="form-label-sm">Inv. No</label></div>
+                    <div class="col-auto"><input type="text" class="form-control form-control-sm" id="invNo"
+                            value="{{ next_inv }}" style="width: 80px; color: blue; font-weight: bold;"></div>
+
+                    <div class="col-auto ms-2"><label class="form-label-sm">Inv. Date</label></div>
+                    <div class="col-auto"><input type="date" class="form-control form-control-sm" id="invDate"
+                            style="width: 110px;"></div>
+
+                    <div class="col-auto ms-2"><label class="form-label-sm">Time</label></div>
+                    <div class="col-auto"><input type="time" class="form-control form-control-sm" id="invTime"
+                            style="width: 100px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Particulars of Item Sold Section -->
+        <div class="mb-3">
+            <div class="section-title">Particulars of Item Sold</div>
+            <!-- Labels and Add Button Row -->
+            <div class="row g-1 align-items-end mb-1">
+                <div class="col-5"><label class="form-label-sm ps-1">Item Name</label></div>
+                <div class="col-2"><label class="form-label-sm ps-1">Qty</label></div>
+                <div class="col-2"><label class="form-label-sm ps-1">Rate</label></div>
+                <div class="col-2"><label class="form-label-sm ps-1">Amount</label></div>
+                <div class="col-1"><button type="button" id="addBtn"
+                        class="btn btn-light border action-btn btn-sm w-100 fw-bold p-0"
+                        onclick="addItem()">Add</button></div>
+            </div>
+            <!-- Inputs and Remove Button Row -->
+            <div class="row g-1 align-items-center">
+                <div class="col-5">
+                    <select class="form-select form-select-sm" id="inputItem" onchange="itemChanged()">
+                        <option value="">Select Item</option>
+                        {% for item in items %}
+                        <option value="{{ item['item'] }}">{{ item['item'] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-2">
+                    <input type="number" class="form-control form-control-sm" id="inputQty" value="1" min="1"
+                        oninput="calculateInput()">
+                </div>
+                <div class="col-2">
+                    <input type="number" class="form-control form-control-sm" id="inputRate" readonly>
+                </div>
+                <div class="col-2">
+                    <input type="number" class="form-control form-control-sm" id="inputAmount" readonly>
+                </div>
+                <div class="col-1">
+                    <button type="button" class="btn btn-light border action-btn btn-sm w-100 fw-bold p-0"
+                        onclick="removeItem()">Remove</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- List Box and Left Buttons -->
+        <div class="row">
+            <!-- Redundant buttons removed -->
+            <div class="col-12">
+                <div class="list-box">
+                    <table class="table table-bordered table-sm table-hover" id="itemsTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">S.No</th>
+                                <th>Item</th>
+                                <th style="width: 80px;">Qty</th>
+                                <th style="width: 100px;">Rate</th>
+                                <th style="width: 120px;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsList">
+                            <!-- Items will serve here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Section -->
+        <div class="row mt-3">
+            <div class="col-md-4">
+                <!-- Helper/Remark inputs matching image style -->
+                <label class="form-label-sm">Amount in Words</label>
+                <input type="text" class="form-control form-control-sm mb-2" id="amtWords" readonly>
+            </div>
+            <div class="col-md-4 offset-md-4">
+                <div class="row mb-1 align-items-center">
+                    <div class="col-6 total-label">Total</div>
+                    <div class="col-6"><input type="number"
+                            class="form-control form-control-sm text-end text-danger fw-bold" id="totalAmount"
+                            value="0.00" readonly></div>
+                </div>
+                <div class="row mb-1 align-items-center">
+                    <div class="col-3 total-label" style="background-color: navy; color: white;">CGST</div>
+                    <div class="col-3"><input type="number" class="form-control form-control-sm" id="cgstPer"
+                            value="2.5" oninput="calculateTotals()"></div>
+                    <div class="col-6"><input type="number" class="form-control form-control-sm text-end" id="cgstAmt"
+                            value="0.00" readonly></div>
+                </div>
+                <div class="row mb-1 align-items-center">
+                    <div class="col-3 total-label" style="background-color: navy; color: white;">SGST</div>
+                    <div class="col-3"><input type="number" class="form-control form-control-sm" id="sgstPer"
+                            value="2.5" oninput="calculateTotals()"></div>
+                    <div class="col-6"><input type="number" class="form-control form-control-sm text-end" id="sgstAmt"
+                            value="0.00" readonly></div>
+                </div>
+                <div class="row mb-1 align-items-center">
+                    <div class="col-3 total-label" style="background-color: navy; color: white;">Adj/Disc</div>
+                    <div class="col-3"></div> <!-- Empty spacer to match image layout -->
+                    <div class="col-6"><input type="number" class="form-control form-control-sm text-end"
+                            id="adjustment" value="0" oninput="calculateTotals()"></div>
+                </div>
+                <div class="row mb-1 align-items-center">
+                    <div class="col-6 total-label">Net Amt.</div>
+                    <div class="col-6"><input type="number"
+                            class="form-control form-control-sm text-end text-danger fw-bold" id="netAmount" value=".00"
+                            readonly style="font-size: 1.1rem;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Action Buttons -->
+        <div class="d-flex justify-content-center gap-2 mt-4 pb-3 border-top pt-3">
+            <div class="form-check me-3 d-flex align-items-center">
+                <input class="form-check-input" type="checkbox" id="printCheck" checked>
+                <!-- Black box placeholder from image -->
+            </div>
+            <a href="/" class="btn btn-light border action-btn fw-bold">Exit</a>
+            <button type="button" class="btn btn-light border action-btn fw-bold"
+                onclick="deleteInvoice()">Delete</button>
+            <!-- Using as Reset/Clear -->
+            <button type="button" class="btn btn-light border action-btn fw-bold" onclick="editInvoice()">Edit</button>
+            <button type="button" class="btn btn-light border action-btn fw-bold"
+                onclick="window.location.reload()">Refresh</button>
+            <button type="button" class="btn btn-light border action-btn fw-bold"
+                onclick="printInvoice()">Print</button>
+            <button type="button" class="btn btn-light border action-btn fw-bold text-decoration-underline"
+                onclick="saveInvoice()">Save</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    let invoiceItems = [];
+    let selectedIndex = -1;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const now = new Date();
+        document.getElementById('invDate').valueAsDate = now;
+        document.getElementById('invTime').value = now.toTimeString().slice(0, 5);
+    });
+
+    async function itemChanged() {
+        const itemName = document.getElementById('inputItem').value;
+        if (!itemName) {
+            document.getElementById('inputRate').value = '';
+            calculateInput();
+            return;
+        }
+
+        try {
+            const response = await fetch(`/get_item_rate/${encodeURIComponent(itemName)}`);
+            const data = await response.json();
+            document.getElementById('inputRate').value = data.rate;
+            calculateInput();
+        } catch (error) {
+            console.error('Error fetching rate:', error);
+        }
+    }
+
+    function calculateInput() {
+        const qty = parseFloat(document.getElementById('inputQty').value) || 0;
+        const rate = parseFloat(document.getElementById('inputRate').value) || 0;
+        document.getElementById('inputAmount').value = (qty * rate).toFixed(2);
+    }
+
+    function addItem() {
+        const item = document.getElementById('inputItem').value;
+        const qty = parseFloat(document.getElementById('inputQty').value);
+        const rate = parseFloat(document.getElementById('inputRate').value);
+        const amount = parseFloat(document.getElementById('inputAmount').value);
+
+        if (!item || !qty || !rate) {
+            alert("Please select an item and ensure valid quantity/rate.");
+            return;
+        }
+
+        if (selectedIndex > -1) {
+            // Update existing item
+            invoiceItems[selectedIndex] = { item, qty, rate, amount };
+            selectedIndex = -1;
+            document.getElementById('addBtn').innerText = 'Add';
+            // Also remove highlighting of rows handled by renderTable, but strictly resetting valid state here
+        } else {
+            // Add new array
+            invoiceItems.push({ item, qty, rate, amount });
+        }
+
+        // Reset input
+        document.getElementById('inputItem').value = '';
+        document.getElementById('inputQty').value = '1';
+        document.getElementById('inputRate').value = '';
+        document.getElementById('inputAmount').value = '';
+
+        renderTable();
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('itemsList');
+        tbody.innerHTML = '';
+
+        invoiceItems.forEach((row, index) => {
+            const tr = document.createElement('tr');
+            tr.onclick = () => selectRow(tr, index);
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${row.item}</td>
+                <td class="text-center">${row.qty}</td>
+                <td class="text-end">${row.rate.toFixed(2)}</td>
+                <td class="text-end">${row.amount.toFixed(2)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        calculateTotals();
+    }
+
+    function selectRow(tr, index) {
+        // Deselect others
+        document.querySelectorAll('#itemsList tr').forEach(row => row.classList.remove('selected'));
+        // Select this
+        tr.classList.add('selected');
+        selectedIndex = index;
+
+        // Populate inputs for editing (optional check: user said "clicking on them will fill the details")
+        const row = invoiceItems[index];
+        document.getElementById('inputItem').value = row.item;
+        document.getElementById('inputQty').value = row.qty;
+        document.getElementById('inputRate').value = row.rate;
+        document.getElementById('inputAmount').value = row.amount;
+
+        // Change Add button to Update
+        document.getElementById('addBtn').innerText = 'Update';
+    }
+
+    function removeItem() {
+        if (selectedIndex === -1) {
+            alert("Please select an item to remove.");
+            return;
+        }
+
+        invoiceItems.splice(selectedIndex, 1);
+        selectedIndex = -1;
+
+        // Clear inputs
+        document.getElementById('inputItem').value = '';
+        document.getElementById('inputQty').value = '1';
+        document.getElementById('inputRate').value = '';
+        document.getElementById('inputAmount').value = '';
+        document.getElementById('addBtn').innerText = 'Add';
+
+        renderTable();
+    }
+
+    function calculateTotals() {
+        let total = invoiceItems.reduce((sum, row) => sum + row.amount, 0);
+        document.getElementById('totalAmount').value = total.toFixed(2);
+
+        const cgstPer = parseFloat(document.getElementById('cgstPer').value) || 0;
+        const sgstPer = parseFloat(document.getElementById('sgstPer').value) || 0;
+        const adjustment = parseFloat(document.getElementById('adjustment').value) || 0;
+
+        const cgstAmt = (total * cgstPer) / 100;
+        const sgstAmt = (total * sgstPer) / 100;
+
+        document.getElementById('cgstAmt').value = cgstAmt.toFixed(2);
+        document.getElementById('sgstAmt').value = sgstAmt.toFixed(2);
+
+        const netAmount = Math.round(total + cgstAmt + sgstAmt - adjustment); // Assuming adjustment is subtraction based on "Adj/Disc", but usually adjustment can be +/-. If Discount, it should be -. Image says "Adj/Disc". Let's assume subtraction for discount or just value. Let's strictly follow standard math: Net = Total + Tax + Adj. If user enters negative for discount, it works.
+        // Wait, image shows "Adj/Disc". Usually Disc is minus. Let's make it additive, user can type -10.
+
+        document.getElementById('netAmount').value = netAmount.toFixed(2);
+        document.getElementById('amtWords').value = convertToWords(netAmount);
+    }
+
+    function convertToWords(num) {
+        if (num === 0) return "Zero Only";
+        const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+        const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        const n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+        if (!n) return; var str = '';
+        str += (n[1] != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'Crore ' : '';
+        str += (n[2] != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'Lakh ' : '';
+        str += (n[3] != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'Thousand ' : '';
+        str += (n[4] != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + 'Hundred ' : '';
+        str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) : '';
+        return str + 'Only';
+    }
+
+    function resetForm() {
+        invoiceItems = [];
+        renderTable();
+        document.getElementById('invoiceForm').reset();
+        // create new date/time
+        const now = new Date();
+        document.getElementById('invDate').valueAsDate = now;
+        document.getElementById('invTime').value = now.toTimeString().slice(0, 5);
+        document.getElementById('addBtn').innerText = 'Add';
+        selectedIndex = -1;
+    }
+
+    async function saveInvoice() {
+        if (invoiceItems.length === 0) {
+            alert('Please add at least one item');
+            return;
+        }
+
+        const master = {
+            InvNo: document.getElementById('invNo').value,
+            InvDate: document.getElementById('invDate').value,
+            InvTime: document.getElementById('invTime').value,
+            TableNo: document.getElementById('tableNo').value,
+            Waiter: document.getElementById('waiter').value,
+            Amount: parseFloat(document.getElementById('totalAmount').value),
+            CGSTPer: parseFloat(document.getElementById('cgstPer').value),
+            CGST: parseFloat(document.getElementById('cgstAmt').value),
+            SGSTPer: parseFloat(document.getElementById('sgstPer').value),
+            SGST: parseFloat(document.getElementById('sgstAmt').value),
+            Adjustment: parseFloat(document.getElementById('adjustment').value),
+            NetAmount: parseFloat(document.getElementById('netAmount').value),
+            AmtInWords: document.getElementById('amtWords').value,
+            Remark: '' // No remark field in new design? Image has text box at bottom left which I used for AmtWords. Let's assume no remark or add hidden one.
+        };
+
+        try {
+            const response = await fetch('/save_invoice', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ master, details: invoiceItems.map(i => ({ Item: i.item, Rate: i.rate, Qty: i.qty, Amount: i.amount })) })
+            });
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                alert(result.message);
+                if (result.pdf_url) {
+                    window.open(result.pdf_url, '_blank');
+                }
+                window.location.reload();
+            } else {
+                alert('Error: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Error saving invoice:', error);
+            alert('Error saving invoice');
+        }
+    }
+
+
+    async function fetchKOTItems() {
+        const tableNo = document.getElementById('tableNo').value;
+        if (!tableNo) {
+            alert("Please enter a Table No");
+            return;
+        }
+
+        try {
+            const res = await fetch(`/get_pending_kot_items/${encodeURIComponent(tableNo)}`);
+            const data = await res.json();
+
+            if (data.status === 'error') {
+                alert('Error fetching items: ' + data.message);
+                return;
+            }
+
+            if (data.items.length === 0) {
+                alert('No pending KOT items found for this table.');
+                return;
+            }
+
+            // Append items to invoiceItems
+            data.items.forEach(item => {
+                invoiceItems.push({
+                    item: item.item,
+                    qty: item.qty,
+                    rate: item.rate,
+                    amount: item.amount
+                });
+            });
+
+            renderTable();
+
+        } catch (e) {
+            console.error(e);
+            alert("Failed to fetch KOT items");
+        }
+    }
+
+    async function printInvoice() {
+        const invNo = document.getElementById('invNo').value;
+        if (!invNo) {
+            alert('Please enter Invoice Number');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/reprint_invoice/${invNo}`);
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                window.open(data.pdf_url, '_blank');
+            } else {
+                alert('Reprint failed: ' + data.message);
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error creating print request');
+        }
+    }
+
+
+    async function editInvoice() {
+        const invNo = document.getElementById('invNo').value;
+        if (!invNo) {
+            alert('Please enter Invoice Number');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/get_invoice_details/${invNo}`);
+            const data = await res.json();
+
+            if (data.status === 'error') {
+                alert('Error fetching invoice: ' + data.message);
+                return;
+            }
+
+            const master = data.master;
+            const details = data.details;
+
+            // Populate Master
+            document.getElementById('invDate').value = master.InvDate;
+            document.getElementById('invTime').value = master.InvTime;
+            document.getElementById('tableNo').value = master.TableNo || '';
+            document.getElementById('waiter').value = master.Waiter || '';
+            document.getElementById('cgstPer').value = master.CGSTPer;
+            document.getElementById('sgstPer').value = master.SGSTPer;
+            document.getElementById('adjustment').value = master.Adjustment;
+
+            // Populate Items
+            invoiceItems = [];
+            details.forEach(item => {
+                invoiceItems.push({
+                    item: item.Item,
+                    qty: item.Qty,
+                    rate: item.Rate,
+                    amount: item.Amount
+                });
+            });
+
+            renderTable();
+            calculateTotals();
+
+        } catch (e) {
+            console.error(e);
+            alert("Failed to fetch invoice details");
+        }
+    }
+
+    async function deleteInvoice() {
+        const invNo = document.getElementById('invNo').value;
+        if (!invNo) {
+            alert('Please enter Invoice Number to delete');
+            return;
+        }
+
+        try {
+            // Check if exists
+            const checkRes = await fetch(`/get_invoice_details/${invNo}`);
+            const checkData = await checkRes.json();
+
+            if (checkData.status === 'error' || !checkData.master) {
+                alert('No record of invoice number ' + invNo + ' found');
+                return;
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error checking invoice existence");
+            return;
+        }
+
+        if (!confirm("Are you sure you want to delete Invoice " + invNo + "?\nThis action cannot be undone.")) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/delete_invoice/${invNo}`, {
+                method: 'POST'
+            });
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert('Deletion failed: ' + data.message);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error connecting to server");
+        }
+    }
+</script>
+{% endblock %}

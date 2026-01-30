@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .report-card {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .section-header {
+        background-color: #198754;
+        /* Green for summary */
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: bold;
+    }
+</style>
+
+<div class="container">
+    <div class="report-card">
+        <div class="section-header">
+            Daily Summary Report
+        </div>
+
+        <form id="summaryForm">
+            <!-- Date Range Inputs -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="startDate">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="endDate">
+                </div>
+            </div>
+
+            <!-- Generate Button -->
+            <div class="d-grid gap-2">
+                <button type="button" class="btn btn-success fw-bold" onclick="generateSummary()">Generate Report
+                    (PDF)</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Set default dates to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('startDate').value = today;
+        document.getElementById('endDate').value = today;
+    });
+
+    async function generateSummary() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        if (!startDate || !endDate) {
+            alert("Please select Start and End dates.");
+            return;
+        }
+
+        const payload = {
+            start_date: startDate,
+            end_date: endDate
+        };
+
+        try {
+            const res = await fetch('/generate_summary_report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                window.open(data.pdf_url, '_blank');
+            } else {
+                alert('Error generating report: ' + data.message);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Failed to connect to server.");
+        }
+    }
+</script>
+{% endblock %}
