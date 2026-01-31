@@ -939,7 +939,7 @@ def generate_pdf(master, details):
 # --- Email Configuration ---
 # REPLACE THESE WITH YOUR ACTUAL DETAILS
 SENDER_EMAIL = "pradeeplakhotia63@gmail.com" 
-APP_PASSWORD = "your_16_char_app_password"
+APP_PASSWORD = "jliv mhvx swcq ssxg"
 
 import smtplib
 from email.mime.multipart import MIMEMultipart
