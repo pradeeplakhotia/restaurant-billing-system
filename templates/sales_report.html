@@ -81,6 +81,20 @@
                 </select>
             </div>
 
+            <hr>
+
+            <!-- Email Configuration -->
+            <div class="mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="sendEmailCheck" onchange="toggleEmailInput()">
+                    <label class="form-check-label fw-bold" for="sendEmailCheck">Send via Email</label>
+                </div>
+                <div class="mt-2" id="emailInputDiv" style="display: none;">
+                    <label class="form-label">Recipient Email</label>
+                    <input type="email" class="form-control" id="recipientEmail" placeholder="Enter recipient email">
+                </div>
+            </div>
+
             <!-- Generate Button -->
             <div class="d-grid gap-2">
                 <button type="button" class="btn btn-primary fw-bold" onclick="generateReport()">Generate Report
@@ -90,78 +104,109 @@
     </div>
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Set default dates to today
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('startDate').value = today;
-        document.getElementById('endDate').value = today;
-        toggleInputs();
-    });
+document.addEventListener('DOMContentLoaded', () => {
+// Set default dates to today
+const today = new Date().toISOString().split('T')[0];
+document.getElementById('startDate').value = today;
+document.getElementById('endDate').value = today;
+toggleInputs();
+toggleEmailInput();
+});
 
-    function toggleInputs() {
-        const type = document.querySelector('input[name="reportType"]:checked').value;
-        const startDate = document.getElementById('startDate');
-        const endDate = document.getElementById('endDate');
-        const waiterSelect = document.getElementById('waiterSelect');
+function toggleInputs() {
+const type = document.querySelector('input[name="reportType"]:checked').value;
+const startDate = document.getElementById('startDate');
+const endDate = document.getElementById('endDate');
+const waiterSelect = document.getElementById('waiterSelect');
 
-        if (type === 'complete') {
-            startDate.disabled = true;
-            endDate.disabled = true;
-            waiterSelect.disabled = true;
-        } else if (type === 'datewise') {
-            startDate.disabled = false;
-            endDate.disabled = false;
-            waiterSelect.disabled = true;
-        } else if (type === 'waiterwise') {
-            startDate.disabled = false;
-            endDate.disabled = false;
-            waiterSelect.disabled = false;
-        }
-    }
+if (type === 'complete') {
+startDate.disabled = true;
+endDate.disabled = true;
+waiterSelect.disabled = true;
+} else if (type === 'datewise') {
+startDate.disabled = false;
+endDate.disabled = false;
+waiterSelect.disabled = true;
+} else if (type === 'waiterwise') {
+startDate.disabled = false;
+endDate.disabled = false;
+waiterSelect.disabled = false;
+}
+}
 
-    async function generateReport() {
-        const type = document.querySelector('input[name="reportType"]:checked').value;
-        const startDate = document.getElementById('startDate').value;
-        const endDate = document.getElementById('endDate').value;
-        const waiter = document.getElementById('waiterSelect').value;
+function toggleEmailInput() {
+const isChecked = document.getElementById('sendEmailCheck').checked;
+const emailDiv = document.getElementById('emailInputDiv');
+emailDiv.style.display = isChecked ? 'block' : 'none';
 
-        // Validation
-        if (type !== 'complete') {
-            if (!startDate || !endDate) {
-                alert("Please select Start and End dates.");
-                return;
-            }
-        }
-        if (type === 'waiterwise' && !waiter) {
-            alert("Please select a waiter.");
-            return;
-        }
+const btn = document.querySelector('button[onclick="generateReport()"]');
+btn.textContent = isChecked ? 'Send Report via Email' : 'Generate Report (PDF)';
+}
 
-        const payload = {
-            type: type,
-            start_date: startDate,
-            end_date: endDate,
-            waiter: waiter
-        };
+async function generateReport() {
+const type = document.querySelector('input[name="reportType"]:checked').value;
+const startDate = document.getElementById('startDate').value;
+const endDate = document.getElementById('endDate').value;
+const waiter = document.getElementById('waiterSelect').value;
 
-        try {
-            const res = await fetch('/generate_sales_report', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
+const sendEmail = document.getElementById('sendEmailCheck').checked;
+const recipientEmail = document.getElementById('recipientEmail').value;
 
-            if (data.status === 'success') {
-                window.open(data.pdf_url, '_blank');
-            } else {
-                alert('Error generating report: ' + data.message);
-            }
-        } catch (e) {
-            console.error(e);
-            alert("Failed to connect to server.");
-        }
-    }
+// Validation
+if (type !== 'complete') {
+if (!startDate || !endDate) {
+alert("Please select Start and End dates.");
+return;
+}
+}
+if (type === 'waiterwise' && !waiter) {
+alert("Please select a waiter.");
+return;
+}
+
+if (sendEmail && !recipientEmail) {
+alert("Please enter a recipient email address.");
+return;
+}
+
+const payload = {
+type: type,
+start_date: startDate,
+end_date: endDate,
+waiter: waiter,
+send_email: sendEmail,
+recipient_email: recipientEmail
+};
+
+try {
+const btn = document.querySelector('button[onclick="generateReport()"]');
+const originalText = btn.textContent;
+btn.disabled = true;
+btn.textContent = "Processing...";
+
+const res = await fetch('/generate_sales_report', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify(payload)
+});
+const data = await res.json();
+
+btn.disabled = false;
+btn.textContent = originalText;
+
+if (data.status === 'success') {
+if (sendEmail) {
+alert('Report successfully sent to ' + recipientEmail);
+} else {
+window.open(data.pdf_url, '_blank');
+}
+} else {
+alert('Error: ' + data.message);
+}
+} catch (e) {
+console.error(e);
+alert("Failed to connect to server.");
+}
+}
 </script>
 {% endblock %}

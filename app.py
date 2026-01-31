@@ -533,7 +533,6 @@ def generate_sales_report():
         pdf.cell(150, 10, "Total Net Amount:", 1, 0, 'R')
         pdf.cell(40, 10, f"{total_net_amt:.2f}", 1, 1, 'R')
         
-        reports_dir = os.path.join(BASE_DIR, 'static', 'reports')
         if not os.path.exists(reports_dir):
             os.makedirs(reports_dir)
             
@@ -541,6 +540,18 @@ def generate_sales_report():
         filepath = os.path.join(reports_dir, filename)
         pdf.output(filepath)
         
+        # Check if email is requested
+        if data.get('send_email') and data.get('recipient_email'):
+            recipient = data.get('recipient_email')
+            subject = f"Sales Report - {report_type.capitalize()}"
+            body = "Please find attached the generated sales report."
+            
+            email_result = send_email_with_attachment(recipient, subject, body, filepath, filename)
+            if email_result['status'] == 'error':
+                 return email_result # Return error if email failed
+                 
+            return {'status': 'success', 'message': 'Email sent successfully'}
+
         return {'status': 'success', 'pdf_url': f"/static/reports/{filename}"}
         
     except Exception as e:
@@ -927,7 +938,7 @@ def generate_pdf(master, details):
 
 # --- Email Configuration ---
 # REPLACE THESE WITH YOUR ACTUAL DETAILS
-SENDER_EMAIL = "your_email@gmail.com" 
+SENDER_EMAIL = "pradeeplakhotia63@gmail.com" 
 APP_PASSWORD = "your_16_char_app_password"
 
 import smtplib
@@ -935,53 +946,55 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 
-@app.route('/send_email_invoice', methods=['POST'])
-def send_email_invoice():
+# Helper function for sending email
+def send_email_with_attachment(recipient_email, subject, body, attachment_path, attachment_name):
     try:
-        data = request.json
-        inv_no = data.get('inv_no')
-        recipient_email = data.get('email')
-        
-        if not inv_no or not recipient_email:
-            return {'status': 'error', 'message': 'Invoice No and Email are required'}
-            
-        # 1. Locate the PDF
-        filename = f"inv_{inv_no}.pdf"
-        filepath = os.path.join(BASE_DIR, 'static', 'invoices', filename)
-        
-        if not os.path.exists(filepath):
-            # Try to regenerate if missing (optional, but good practice)
-            # For now, just return error
-            return {'status': 'error', 'message': 'Invoice PDF not found. Please save/print it first.'}
-            
-        # 2. Setup Email
+        if not os.path.exists(attachment_path):
+            return {'status': 'error', 'message': 'Attachment file not found.'}
+
         msg = MIMEMultipart()
         msg['From'] = SENDER_EMAIL
         msg['To'] = recipient_email
-        msg['Subject'] = f"Invoice #{inv_no} from Restaurant Billing System"
-        
-        body = f"Dear Customer,\n\nPlease find attached the invoice #{inv_no} for your recent visit.\n\nThank you for dining with us!\n\nRegards,\nRestaurant Team"
+        msg['Subject'] = subject
         msg.attach(MIMEText(body, 'plain'))
-        
-        # 3. Attach PDF
-        with open(filepath, "rb") as f:
+
+        with open(attachment_path, "rb") as f:
             attach = MIMEApplication(f.read(),_subtype="pdf")
-            attach.add_header('Content-Disposition','attachment',filename=filename)
+            attach.add_header('Content-Disposition','attachment',filename=attachment_name)
             msg.attach(attach)
-            
-        # 4. Send
-        # Connect to Gmail SMTP (port 587 for TLS)
+
+        # Send
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         server.login(SENDER_EMAIL, APP_PASSWORD)
         server.send_message(msg)
         server.quit()
-        
-        return {'status': 'success', 'message': f'Email sent successfully to {recipient_email}'}
-        
+
+        return {'status': 'success'}
     except Exception as e:
-        print(e)
-        return {'status': 'error', 'message': f'Failed to send email: {str(e)}'}
+        import traceback
+        traceback.print_exc()
+        return {'status': 'error', 'message': str(e)}
+
+@app.route('/send_email_invoice', methods=['POST'])
+def send_email_invoice():
+    data = request.json
+    inv_no = data.get('inv_no')
+    recipient_email = data.get('email')
+    
+    if not inv_no or not recipient_email:
+        return {'status': 'error', 'message': 'Invoice No and Email are required'}
+        
+    filename = f"inv_{inv_no}.pdf"
+    filepath = os.path.join(BASE_DIR, 'static', 'invoices', filename)
+    
+    subject = f"Invoice #{inv_no} from Restaurant Billing System"
+    body = f"Dear Customer,\n\nPlease find attached the invoice #{inv_no} for your recent visit.\n\nThank you for dining with us!\n\nRegards,\nRestaurant Team"
+    
+    result = send_email_with_attachment(recipient_email, subject, body, filepath, filename)
+    if result['status'] == 'success':
+         return {'status': 'success', 'message': f'Email sent successfully to {recipient_email}'}
+    return result
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
