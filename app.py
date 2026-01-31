@@ -964,9 +964,9 @@ def send_email_with_attachment(recipient_email, subject, body, attachment_path, 
             attach.add_header('Content-Disposition','attachment',filename=attachment_name)
             msg.attach(attach)
 
-        # Send
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
+        # Send - Using SMTP_SSL for PythonAnywhere compatibility
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        # server.starttls() # Not needed for SSL
         server.login(SENDER_EMAIL, APP_PASSWORD)
         server.send_message(msg)
         server.quit()
