@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 import sqlite3
 from fpdf import FPDF
 import os
 import datetime
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here' # Change this in production
@@ -14,15 +15,96 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'role' not in session or session['role'] != 'Admin':
+            return "Access Denied: Admin Rights Required", 403
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        conn = get_db_connection()
+        user = conn.execute('SELECT * FROM Users WHERE Username = ? AND Password = ?', (username, password)).fetchone()
+        conn.close()
+        
+        if user:
+            session['user'] = user['Username']
+            session['role'] = user['Role']
+            
+            # Redirect based on role
+            if user['Role'] == 'Waiter':
+                return redirect(url_for('kot'))
+            else:
+                return redirect(url_for('index'))
+        else:
+            flash('Invalid username or password')
+            
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+@app.route('/change_password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        current_password = request.form['current_password']
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+        
+        if new_password != confirm_password:
+            flash('New passwords do not match!')
+            return redirect(url_for('change_password'))
+            
+        conn = get_db_connection()
+        # Verify current password
+        user = conn.execute('SELECT * FROM Users WHERE Username = ? AND Password = ?', 
+                          (session['user'], current_password)).fetchone()
+        
+        if user:
+            # Update password
+            conn.execute('UPDATE Users SET Password = ? WHERE Username = ?', 
+                       (new_password, session['user']))
+            conn.commit()
+            flash('Password updated successfully!')
+            conn.close()
+            return redirect(url_for('index'))
+        else:
+            conn.close()
+            flash('Incorrect current password!')
+            return redirect(url_for('change_password'))
+            
+    return render_template('change_password.html')
+
 
 @app.route('/contact')
 def contact():
     return render_template('contact.html')
 
 @app.route('/add_item', methods=('GET', 'POST'))
+@login_required
+@admin_required
 def add_item():
     if request.method == 'POST':
         item = request.form['item']
@@ -75,6 +157,8 @@ def delete_item():
     return redirect(url_for('add_item'))
 
 @app.route('/add_waiter', methods=('GET', 'POST'))
+@login_required
+@admin_required
 def add_waiter():
     if request.method == 'POST':
         waiter = request.form['waiter']
@@ -112,6 +196,8 @@ def delete_waiter():
     return redirect(url_for('add_waiter'))
 
 @app.route('/billing')
+@login_required
+@admin_required
 def billing():
     conn = get_db_connection()
     items = conn.execute('SELECT * FROM Menu ORDER BY item COLLATE NOCASE ASC').fetchall()
@@ -257,6 +343,7 @@ def delete_invoice(inv_no):
 # --- KOT Routes ---
 
 @app.route('/kot')
+@login_required
 def kot():
     conn = get_db_connection()
     items = conn.execute('SELECT * FROM Menu ORDER BY item COLLATE NOCASE ASC').fetchall()
@@ -357,6 +444,8 @@ def get_kot_data():
 # --- Sales Report Routes ---
 
 @app.route('/sales_report')
+@login_required
+@admin_required
 def sales_report():
     conn = get_db_connection()
     # Table name is Headwaiter
@@ -500,6 +589,8 @@ def reprint_invoice(inv_no):
 # --- Bulk Rate Update ---
 
 @app.route('/bulk_update')
+@login_required
+@admin_required
 def bulk_update():
     conn = get_db_connection()
     items = conn.execute('SELECT * FROM Menu ORDER BY item COLLATE NOCASE ASC').fetchall()
@@ -525,6 +616,8 @@ def update_rate_fast():
 # --- Summary Report ---
 
 @app.route('/summary_report')
+@login_required
+@admin_required
 def summary_report():
     return render_template('summary_report.html')
 
@@ -611,6 +704,8 @@ def generate_summary_report():
 # --- Sale Details Report Routes ---
 
 @app.route('/sale_details_report')
+@login_required
+@admin_required
 def sale_details_report():
     return render_template('sale_details_report.html')
 
@@ -829,6 +924,64 @@ def generate_pdf(master, details):
     filepath = os.path.join(invoices_dir, filename)
     pdf.output(filepath)
     return f"/static/invoices/{filename}"
+
+# --- Email Configuration ---
+# REPLACE THESE WITH YOUR ACTUAL DETAILS
+SENDER_EMAIL = "your_email@gmail.com" 
+APP_PASSWORD = "your_16_char_app_password"
+
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+
+@app.route('/send_email_invoice', methods=['POST'])
+def send_email_invoice():
+    try:
+        data = request.json
+        inv_no = data.get('inv_no')
+        recipient_email = data.get('email')
+        
+        if not inv_no or not recipient_email:
+            return {'status': 'error', 'message': 'Invoice No and Email are required'}
+            
+        # 1. Locate the PDF
+        filename = f"inv_{inv_no}.pdf"
+        filepath = os.path.join(BASE_DIR, 'static', 'invoices', filename)
+        
+        if not os.path.exists(filepath):
+            # Try to regenerate if missing (optional, but good practice)
+            # For now, just return error
+            return {'status': 'error', 'message': 'Invoice PDF not found. Please save/print it first.'}
+            
+        # 2. Setup Email
+        msg = MIMEMultipart()
+        msg['From'] = SENDER_EMAIL
+        msg['To'] = recipient_email
+        msg['Subject'] = f"Invoice #{inv_no} from Restaurant Billing System"
+        
+        body = f"Dear Customer,\n\nPlease find attached the invoice #{inv_no} for your recent visit.\n\nThank you for dining with us!\n\nRegards,\nRestaurant Team"
+        msg.attach(MIMEText(body, 'plain'))
+        
+        # 3. Attach PDF
+        with open(filepath, "rb") as f:
+            attach = MIMEApplication(f.read(),_subtype="pdf")
+            attach.add_header('Content-Disposition','attachment',filename=filename)
+            msg.attach(attach)
+            
+        # 4. Send
+        # Connect to Gmail SMTP (port 587 for TLS)
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(SENDER_EMAIL, APP_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        
+        return {'status': 'success', 'message': f'Email sent successfully to {recipient_email}'}
+        
+    except Exception as e:
+        print(e)
+        return {'status': 'error', 'message': f'Failed to send email: {str(e)}'}
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

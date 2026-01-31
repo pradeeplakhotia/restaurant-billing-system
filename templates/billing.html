@@ -235,6 +235,9 @@
                 onclick="printInvoice()">Print</button>
             <button type="button" class="btn btn-light border action-btn fw-bold text-decoration-underline"
                 onclick="saveInvoice()">Save</button>
+            <button type="button" class="btn btn-success border action-btn fw-bold"
+                onclick="sendWhatsApp()">WhatsApp</button>
+            <button type="button" class="btn btn-primary border action-btn fw-bold" onclick="sendEmail()">Email</button>
         </div>
     </form>
 </div>
@@ -606,6 +609,67 @@
         } catch (e) {
             console.error(e);
             alert("Error connecting to server");
+        }
+    }
+
+    function sendWhatsApp() {
+        const netAmount = document.getElementById('netAmount').value;
+        const invNo = document.getElementById('invNo').value;
+
+        if (!netAmount || netAmount == "0.00") {
+            alert("Please calculate the bill first.");
+            return;
+        }
+
+        // Ask for phone number
+        const phone = prompt("Enter Customer WhatsApp Number (with Country Code, e.g., 919876543210):", "91");
+
+        if (phone) {
+            // Construct message
+            let msg = `*Restaurant Bill*\nInvoice No: ${invNo}\nTotal Amount: ${netAmount}\n\nThank you for dining with us!`;
+
+            // Encode for URL
+            const encodedMsg = encodeURIComponent(msg);
+
+            // Open WhatsApp
+            // https://wa.me/NUMBER?text=MESSAGE
+            const url = `https://wa.me/${phone}?text=${encodedMsg}`;
+            window.open(url, '_blank');
+        }
+    }
+
+    async function sendEmail() {
+        const invNo = document.getElementById('invNo').value;
+
+        // Basic check if invoice exists (rough check by netAmount)
+        const netAmount = document.getElementById('netAmount').value;
+        if (!netAmount || netAmount == "0.00") {
+            alert("Please calculate/save the bill first.");
+            return;
+        }
+
+        const email = prompt("Enter Customer Email Address:");
+        if (!email) return;
+
+        // Show loading state (optional but nice)
+        alert("Sending email... please wait.");
+
+        try {
+            const res = await fetch('/send_email_invoice', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ inv_no: invNo, email: email })
+            });
+            const data = await res.json();
+
+            if (data.status === 'success') {
+                alert(data.message);
+            } else {
+                alert("Error: " + data.message);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Failed to communicate with server.");
         }
     }
 </script>

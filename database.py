@@ -71,6 +71,22 @@ def init_db():
         )
     ''')
     
+    # Create Users table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Users (
+            Username TEXT PRIMARY KEY,
+            Password TEXT,
+            Role TEXT
+        )
+    ''')
+    
+    # Check if users exist, if not add defaults
+    cursor.execute('SELECT count(*) FROM Users')
+    if cursor.fetchone()[0] == 0:
+        cursor.execute("INSERT INTO Users (Username, Password, Role) VALUES ('admin', 'admin123', 'Admin')")
+        cursor.execute("INSERT INTO Users (Username, Password, Role) VALUES ('waiter', 'waiter123', 'Waiter')")
+        print("Default users created: admin/admin123, waiter/waiter123")
+    
     conn.commit()
     conn.close()
     print("Database initialized successfully.")

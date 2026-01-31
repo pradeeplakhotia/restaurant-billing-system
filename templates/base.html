@@ -14,16 +14,32 @@
         <nav>
             <button class="hamburger" id="hamburger-btn">&#9776;</button>
             <ul id="nav-menu">
+                {% if session['user'] %}
                 <li><a href="{{ url_for('index') }}">Home</a></li>
+
+                {% if session['role'] == 'Admin' %}
                 <li><a href="{{ url_for('add_item') }}">Add Item</a></li>
                 <li><a href="{{ url_for('add_waiter') }}">Add Waiter</a></li>
+                {% endif %}
+
                 <li><a href="{{ url_for('kot') }}">KOT</a></li>
+
+                {% if session['role'] == 'Admin' %}
                 <li><a href="{{ url_for('billing') }}">Billing</a></li>
                 <li><a href="{{ url_for('sales_report') }}">Sales Report</a></li>
                 <li><a href="{{ url_for('bulk_update') }}">Bulk Rate Update</a></li>
                 <li><a href="{{ url_for('summary_report') }}">Summary Report</a></li>
                 <li><a href="{{ url_for('sale_details_report') }}">Sale Details Report</a></li>
+                {% endif %}
+
                 <li><a href="{{ url_for('contact') }}">Contact Us</a></li>
+                <li style="margin-left:auto; border-left:1px solid #ccc; padding-left:10px;">
+                    <span style="color:white; font-size:0.8rem;">{{ session['user'] }} ({{ session['role'] }})</span>
+                    <a href="{{ url_for('change_password') }}"
+                        style="color:#e0e0e0; margin-left:5px; font-size:0.9rem;">Pwd</a>
+                    <a href="{{ url_for('logout') }}" style="color:#ffcccc; margin-left:5px;">Logout</a>
+                </li>
+                {% endif %}
             </ul>
         </nav>
     </header>
