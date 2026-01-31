@@ -533,6 +533,7 @@ def generate_sales_report():
         pdf.cell(150, 10, "Total Net Amount:", 1, 0, 'R')
         pdf.cell(40, 10, f"{total_net_amt:.2f}", 1, 1, 'R')
         
+        reports_dir = os.path.join(BASE_DIR, 'static', 'reports')
         if not os.path.exists(reports_dir):
             os.makedirs(reports_dir)
             
